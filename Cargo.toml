@@ -1,9 +1,17 @@
 [package]
-    edition = "2024"
     name = "defmt-logger-rtrb"
+
+    authors = ["Jalon Wong <jalonwong@gmail.com>"]
+    description = "A defmt global logger based on rtrb ring buffer."
+    documentation = "https://docs.rs/defmt-logger-rtrb"
+    edition = "2024"
+    keywords = ["logger", "no-std"]
+    license = "MIT OR Apache-2.0"
+    readme = "README.md"
+    repository = "https://github.com/mcu-rust/defmt-logger-rtrb"
     version = "0.1.0"
 
 [dependencies]
     critical-section = "1.2.0"
     defmt = "1.0.1"
-    rtrb = "0.3.2"
+    rtrb = { version = "0.3.2", default-features = false }

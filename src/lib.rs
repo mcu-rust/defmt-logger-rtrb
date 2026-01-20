@@ -117,6 +117,7 @@ unsafe impl Sync for LoggerRtrb {}
 
 fn do_write(buf: &UnsafeCell<MaybeUninit<Producer<u8>>>, bytes: &[u8]) {
     use ChunkError::TooFewSlots;
+
     let buf = unsafe { (&mut *buf.get()).assume_init_mut() };
     let mut chunk = match buf.write_chunk_uninit(bytes.len()) {
         Ok(chunk) => chunk,
