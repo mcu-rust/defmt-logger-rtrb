@@ -1,0 +1,9 @@
+[package]
+    edition = "2024"
+    name = "defmt-logger-rtrb"
+    version = "0.1.0"
+
+[dependencies]
+    critical-section = "1.2.0"
+    defmt = "1.0.1"
+    rtrb = "0.3.2"
