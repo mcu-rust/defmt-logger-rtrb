@@ -13,19 +13,36 @@ This crate needs a global allocator. If you are using it on a bare-metal platfor
 cargo add defmt-logger-rtrb
 ```
 
+Add following to your `.cargo\config.toml`:
+```toml
+[target.thumbv7m-none-eabi]
+linker = "flip-link"
+rustflags = [
+    "-C", "link-arg=-Tlink.x",
+    "-C", "link-arg=-Tdefmt.x", # add this
+]
+
+[env]
+DEFMT_LOG = "info" # add this
+```
+
+Your code:
+
 ```rust ignore
 fn main() {
     // Initialize it before any `defmt` interfaces are called.
-    let mut log_buf = defmt_logger_rtrb::init(128);
+    let mut log_buf = defmt_logger_rtrb::init(1024);
 
     defmt::info!("foo");
 
     // get log data from buffer and send it via UART or something similar
-    let n = log_buf.slots();
-    if n > 0 && let Ok(chunk) = log_buf.read_chunk(n) {
-        let (data, _) = chunk.as_slices();
-        // send data ...
-        chunk.commit(n);
+    loop {
+        let n = log_buf.slots();
+        if n > 0 && let Ok(chunk) = log_buf.read_chunk(n) {
+            let (data, _) = chunk.as_slices();
+            // send data ...
+            chunk.commit(data.len());
+        }
     }
 }
 ```
