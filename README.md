@@ -1,5 +1,9 @@
 # defmt-logger-rtrb
 
+[![CI](https://github.com/mcu-rust/defmt-logger-rtrb/workflows/CI/badge.svg)](https://github.com/mcu-rust/defmt-logger-rtrb/actions)
+[![Crates.io](https://img.shields.io/crates/v/defmt-logger-rtrb.svg)](https://crates.io/crates/defmt-logger-rtrb)
+[![Docs.rs](https://docs.rs/defmt-logger-rtrb/badge.svg)](https://docs.rs/defmt-logger-rtrb)
+
 A [`defmt`](https://crates.io/crates/defmt) global logger based on [`rtrb`](https://crates.io/crates/rtrb) ring buffer.
 
 This crate needs a global allocator. If you are using it on a bare-metal platform, you can use [`embedded-alloc`](https://crates.io/crates/embedded-alloc) or [`heap1`](https://crates.io/crates/heap1) as global allocator.
@@ -10,8 +14,6 @@ cargo add defmt-logger-rtrb
 ```
 
 ```rust ignore
-use defmt_logger_rtrb;
-
 fn main() {
     // Initialize it before any `defmt` interfaces are called.
     let mut log_buf = defmt_logger_rtrb::init(128);
