@@ -6,9 +6,12 @@ use core::{
     mem::MaybeUninit,
     sync::atomic::{AtomicBool, Ordering},
 };
-use rtrb::{Consumer, CopyToUninit, Producer, RingBuffer, chunks::ChunkError};
+use rtrb::{
+    Consumer, CopyToUninit, Producer, RingBuffer,
+    chunks::{ChunkError, ReadChunk},
+};
 
-/// Initialize global logger
+/// Initialize global logger.
 ///
 /// - size: size of buffer in logger
 pub fn init(size: usize) -> Consumer<u8> {
@@ -17,7 +20,28 @@ pub fn init(size: usize) -> Consumer<u8> {
     c
 }
 
+/// Initialize global logger and store the buffer consumer as a global static variable.
+/// You can then get the log data by calling [`get_read_chunk`].
+///
+/// - size: size of buffer in logger
+pub fn init_global(size: usize) {
+    let (p, c) = RingBuffer::new(size);
+    LOGGER.init_buf(p);
+    CONSUMER.init_consumer(c);
+}
+
+/// Get log data from global buffer consumer
+///
+/// # Safety
+///
+/// You must call [`init_global`] first.
+/// Calling this function from more than one thread will cause a data race.
+pub unsafe fn get_read_chunk() -> Option<ReadChunk<'static, u8>> {
+    CONSUMER.read_chunk()
+}
+
 static LOGGER: LoggerRtrb = LoggerRtrb::new();
+static CONSUMER: LoggerRtrbConsumer = LoggerRtrbConsumer::new();
 
 struct LoggerRtrb {
     /// A boolean lock
@@ -135,6 +159,33 @@ fn do_write(buf: &UnsafeCell<MaybeUninit<Producer<u8>>>, bytes: &[u8]) {
     bytes[mid..end].copy_to_uninit(second);
     unsafe { chunk.commit_all() };
 }
+
+struct LoggerRtrbConsumer {
+    consumer: UnsafeCell<MaybeUninit<Consumer<u8>>>,
+}
+
+impl LoggerRtrbConsumer {
+    pub const fn new() -> Self {
+        Self {
+            consumer: UnsafeCell::new(MaybeUninit::uninit()),
+        }
+    }
+
+    fn init_consumer(&self, consumer: Consumer<u8>) {
+        unsafe { &mut *self.consumer.get() }.write(consumer);
+    }
+
+    fn read_chunk(&self) -> Option<ReadChunk<'_, u8>> {
+        let consumer = unsafe { (&mut *self.consumer.get()).assume_init_mut() };
+        let n = consumer.slots();
+        if n > 0 {
+            return consumer.read_chunk(n).ok();
+        }
+        None
+    }
+}
+
+unsafe impl Sync for LoggerRtrbConsumer {}
 
 #[defmt::global_logger]
 struct Logger;

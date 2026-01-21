@@ -14,6 +14,7 @@ cargo add defmt-logger-rtrb
 ```
 
 Add following to your `.cargo\config.toml`:
+
 ```toml
 [target.thumbv7m-none-eabi]
 linker = "flip-link"
@@ -31,14 +32,47 @@ Your code:
 ```rust ignore
 fn main() {
     // Initialize it before any `defmt` interfaces are called.
-    let mut log_buf = defmt_logger_rtrb::init(1024);
+    let mut log_consumer = defmt_logger_rtrb::init(1024);
 
     defmt::info!("foo");
 
     // get log data from buffer and send it via UART or something similar
     loop {
-        let n = log_buf.slots();
-        if n > 0 && let Ok(chunk) = log_buf.read_chunk(n) {
+        let n = log_consumer.slots();
+        if n > 0 && let Ok(chunk) = log_consumer.read_chunk(n) {
+            let (data, _) = chunk.as_slices();
+            // send data ...
+            chunk.commit(data.len());
+        }
+    }
+}
+```
+
+## Global Consumer
+
+You can also use the global log consumer:
+
+```rust ignore
+fn main() {
+    // Initialize it before any `defmt` interfaces are called.
+    defmt_logger_rtrb::init_global(1024);
+
+    defmt::info!("foo");
+
+    // get log data from buffer and send it via UART or something similar
+    loop {
+        if let Some(chunk) = unsafe { defmt_logger_rtrb::get_read_chunk() } {
+            let (data, _) = chunk.as_slices();
+            // send data ...
+            chunk.commit(data.len());
+        }
+    }
+}
+
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    loop {
+        if let Some(chunk) = unsafe { defmt_logger_rtrb::get_read_chunk() } {
             let (data, _) = chunk.as_slices();
             // send data ...
             chunk.commit(data.len());
